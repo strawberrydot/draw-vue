@@ -9,7 +9,7 @@ import '@/assets/iconfont/iconfont.js';
 
 Vue.config.productionTip = false;
 Vue.prototype.d3 = d3;
-// 如果你需要应用一个插件，同事他并不是基于vue.js的插件命令编写的，那么你可以将它赋予Vue的原型上
+// 如果你需要应用一个插件，同时他并不是基于vue.js的插件命令编写的，那么你可以将它赋予Vue的原型上
 // 在使用的时候 this.XXX即可
 Vue.component('icon-svg', IconSvg);
 
