@@ -1,250 +1,89 @@
 <!doctype html>
 
 <meta charset="utf-8">
-<title>Dagre D3 Renderer Demo</title>
+<title>Dagre D3 Demo: TCP State Diagram</title>
 
+<link rel="stylesheet" href="demo.css">
 <script src="https://d3js.org/d3.v4.min.js" charset="utf-8"></script>
 <script src="dagre-d3.js"></script>
 
-<style>
+<style id="css">
     body {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        margin: 0;
-        padding: 0;
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-        background: #333;
+        font: 300 14px 'Helvetica Neue', Helvetica;
     }
-    @-webkit-keyframes flash {
-        0%, 50%, 100% {
-            opacity: 1;
-        }
-        25%, 75% {
-            opacity: 0.2;
-        }
-    }
-    @keyframes flash {
-        0%, 50%, 100% {
-            opacity: 1;
-        }
-        25%, 75% {
-            opacity: 0.2;
-        }
-    }
-    .warn {
-        -webkit-animation-duration: 5s;
-        animation-duration: 5s;
-        -webkit-animation-fill-mode: both;
-        animation-fill-mode: both;
-        -webkit-animation-iteration-count: 1;
-        animation-iteration-count: 1;
-    }
-    .live.map {
-        width: 100%;
-        height: 100%;
-    }
-    svg {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-    }
-    .live.map text {
-        font-weight: 300;
-        font-size: 14px;
-    }
-    .live.map .node rect {
-        stroke-width: 1.5px;
-        stroke: #bbb;
-        fill: #666;
-    }
-    .live.map .status {
-        height: 100%;
-        width: 15px;
-        display: block;
-        float: left;
-        border-top-left-radius: 5px;
-        border-bottom-left-radius: 5px;
-        margin-right: 4px;
-    }
-    .live.map .running .status {
-        background-color: #7f7;
-    }
-    .live.map .running.warn .status {
-        background-color: #ffed68;
-    }
-    .live.map .stopped .status {
-        background-color: #f77;
-    }
-    .live.map .warn .queue {
-        color: #f77;
-    }
-    .warn {
-        -webkit-animation-name: flash;
-        animation-name: flash;
-    }
-    .live.map .consumers {
-        margin-right: 2px;
-    }
-    .live.map .consumers,
-    .live.map .name {
-        margin-top: 4px;
-    }
-    .live.map .consumers:after {
-        content: "x";
-    }
-    .live.map .queue {
-        display: block;
-        float: left;
-        width: 130px;
-        height: 20px;
-        font-size: 12px;
-        margin-top: 2px;
-    }
-    .live.map .node g div {
-        width: 200px;
-        height: 40px;
-        color: #fff;
-    }
-    .live.map .node g div span.consumers {
-        display: inline-block;
-        width: 20px;
-    }
-    .live.map .edgeLabel text {
-        width: 50px;
+    .node rect {
+        stroke: #333;
         fill: #fff;
     }
-    .live.map .edgePath path {
-        stroke: #999;
+    .edgePath path {
+        stroke: #333;
+        fill: #333;
         stroke-width: 1.5px;
-        fill: #999;
     }
 </style>
 
-<body>
-<div class="live map">
-    <svg><g/></svg>
-</div>
+<h1>Dagre D3 Demo: TCP State Diagram</h1>
 
-<script>
-    var workers = {
-        "identifier": {
-            "consumers": 2,
-            "count": 20
-        },
-        "lost-and-found": {
-            "consumers": 1,
-            "count": 1,
-            "inputQueue": "identifier",
-            "inputThroughput": 50
-        },
-        "monitor": {
-            "consumers": 1,
-            "count": 0,
-            "inputQueue": "identifier",
-            "inputThroughput": 50
-        },
-        "meta-enricher": {
-            "consumers": 4,
-            "count": 9900,
-            "inputQueue": "identifier",
-            "inputThroughput": 50
-        },
-        "geo-enricher": {
-            "consumers": 2,
-            "count": 1,
-            "inputQueue": "meta-enricher",
-            "inputThroughput": 50
-        },
-        "elasticsearch-writer": {
-            "consumers": 0,
-            "count": 9900,
-            "inputQueue": "geo-enricher",
-            "inputThroughput": 50
-        }
-    };
-    // Set up zoom support
-    var svg = d3.select("svg"),
-        inner = svg.select("g"),
-        zoom = d3.zoom().on("zoom", function() {
-            inner.attr("transform", d3.event.transform);
-        });
-    svg.call(zoom);
-    var render = new dagreD3.render();
-    // Left-to-right layout
-    var g = new dagreD3.graphlib.Graph();
-    g.setGraph({
-        nodesep: 70,
-        ranksep: 50,
-        rankdir: "LR",
-        marginx: 20,
-        marginy: 20
+<svg width=960 height=600><g/></svg>
+
+<section>
+    <p>A sample rendering of a TCP state diagram
+        (<a href="http://www.rfc-editor.org/rfc/rfc793.txt">RFC 793</a>). This example
+        shows how to set custom styles in the input graph and how to set a custom
+        initial zoom.
+</section>
+
+<script id="js">
+    // Create a new directed graph
+    var g = new dagreD3.graphlib.Graph().setGraph({});
+    // States and transitions from RFC 793
+    var states = [ "CLOSED", "LISTEN", "SYN RCVD", "SYN SENT",
+        "ESTAB", "FINWAIT-1", "CLOSE WAIT", "FINWAIT-2",
+        "CLOSING", "LAST-ACK", "TIME WAIT" ];
+    // Automatically label each of the nodes
+    states.forEach(function(state) { g.setNode(state, { label: state }); });
+    // Set up the edges
+    g.setEdge("CLOSED",     "LISTEN",     { label: "open" });
+    g.setEdge("LISTEN",     "SYN RCVD",   { label: "rcv SYN" });
+    g.setEdge("LISTEN",     "SYN SENT",   { label: "send" });
+    g.setEdge("LISTEN",     "CLOSED",     { label: "close" });
+    g.setEdge("SYN RCVD",   "FINWAIT-1",  { label: "close" });
+    g.setEdge("SYN RCVD",   "ESTAB",      { label: "rcv ACK of SYN" });
+    g.setEdge("SYN SENT",   "SYN RCVD",   { label: "rcv SYN" });
+    g.setEdge("SYN SENT",   "ESTAB",      { label: "rcv SYN, ACK" });
+    g.setEdge("SYN SENT",   "CLOSED",     { label: "close" });
+    g.setEdge("ESTAB",      "FINWAIT-1",  { label: "close" });
+    g.setEdge("ESTAB",      "CLOSE WAIT", { label: "rcv FIN" });
+    g.setEdge("FINWAIT-1",  "FINWAIT-2",  { label: "rcv ACK of FIN" });
+    g.setEdge("FINWAIT-1",  "CLOSING",    { label: "rcv FIN" });
+    g.setEdge("CLOSE WAIT", "LAST-ACK",   { label: "close" });
+    g.setEdge("FINWAIT-2",  "TIME WAIT",  { label: "rcv FIN" });
+    g.setEdge("CLOSING",    "TIME WAIT",  { label: "rcv ACK of FIN" });
+    g.setEdge("LAST-ACK",   "CLOSED",     { label: "rcv ACK of FIN" });
+    g.setEdge("TIME WAIT",  "CLOSED",     { label: "timeout=2MSL" });
+    // Set some general styles
+    g.nodes().forEach(function(v) {
+        var node = g.node(v);
+        node.rx = node.ry = 5;
     });
-    function draw(isUpdate) {
-        for (var id in workers) {
-            var worker = workers[id];
-            var className = worker.consumers ? "running" : "stopped";
-            if (worker.count > 10000) {
-                className += " warn";
-            }
-            var html = "<div>";
-            html += "<span class=status></span>";
-            html += "<span class=consumers>"+worker.consumers+"</span>";
-            html += "<span class=name>"+id+"</span>";
-            html += "<span class=queue><span class=counter>"+worker.count+"</span></span>";
-            html += "</div>";
-            g.setNode(id, {
-                labelType: "html",
-                label: html,
-                rx: 5,
-                ry: 5,
-                padding: 0,
-                class: className
-            });
-            if (worker.inputQueue) {
-                g.setEdge(worker.inputQueue, id, {
-                    label: worker.inputThroughput + "/s",
-                    width: 40
-                });
-            }
-        }
-        inner.call(render, g);
-        // Zoom and scale to fit
-        var graphWidth = g.graph().width + 80;
-        var graphHeight = g.graph().height + 40;
-        var width = parseInt(svg.style("width").replace(/px/, ""));
-        var height = parseInt(svg.style("height").replace(/px/, ""));
-        var zoomScale = Math.min(width / graphWidth, height / graphHeight);
-        var translateX = (width / 2) - ((graphWidth * zoomScale) / 2)
-        var translateY = (height / 2) - ((graphHeight * zoomScale) / 2);
-        var svgZoom = isUpdate ? svg.transition().duration(500) : svg;
-        svgZoom.call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(zoomScale));
-    }
-    // Do some mock queue status updates
-    setInterval(function() {
-        var stoppedWorker1Count = workers["elasticsearch-writer"].count;
-        var stoppedWorker2Count = workers["meta-enricher"].count;
-        for (var id in workers) {
-            workers[id].count = Math.ceil(Math.random() * 3);
-            if (workers[id].inputThroughput) workers[id].inputThroughput = Math.ceil(Math.random() * 250);
-        }
-        workers["elasticsearch-writer"].count = stoppedWorker1Count + Math.ceil(Math.random() * 100);
-        workers["meta-enricher"].count = stoppedWorker2Count + Math.ceil(Math.random() * 100);
-        draw(true);
-    }, 1000);
-    // Do a mock change of worker configuration
-    setInterval(function() {
-        workers["elasticsearch-monitor"] = {
-            "consumers": 0,
-            "count": 0,
-            "inputQueue": "elasticsearch-writer",
-            "inputThroughput": 50
-        }
-    }, 5000);
-    // Initial draw, once the DOM is ready
-    document.addEventListener("DOMContentLoaded", draw);
+    // Add some custom colors based on state
+    g.node('CLOSED').style = "fill: #f77";
+    g.node('ESTAB').style = "fill: #7f7";
+    var svg = d3.select("svg"),
+        inner = svg.select("g");
+    // Set up zoom support
+    var zoom = d3.zoom().on("zoom", function() {
+        inner.attr("transform", d3.event.transform);
+    });
+    svg.call(zoom);
+    // Create the renderer
+    var render = new dagreD3.render();
+    // Run the renderer. This is what draws the final graph.
+    render(inner, g);
+    // Center the graph
+    var initialScale = 0.75;
+    svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale));
+    svg.attr('height', g.graph().height * initialScale + 40);
 </script>
-</body>
-</html>
+
+<script src="demo.js"></script>
