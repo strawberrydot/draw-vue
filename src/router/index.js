@@ -4,6 +4,7 @@ const WrapperView = resolve => require(['@/views/wrapper/WrapperView'], resolve)
 const DrawTest = resolve => require(['@/views/test/DrawTest'], resolve);
 const Examples = resolve => require(['@/views/test/Examples'], resolve);
 const TestModel = resolve => require(['@/views/objecttest/TestModel'], resolve);
+const ParentA = resolve => require(['@/views/componenttest/ParentA'], resolve);
 
 Vue.use(Router);
 
@@ -12,11 +13,11 @@ export default new Router({
         {
             path: '/',
             component: WrapperView,
-            name: 'TestModel',
+            name: 'ParentA',
             children: [
                 {
                     path: '/',
-                    component: TestModel
+                    component: ParentA
                 }
             ]
         }
