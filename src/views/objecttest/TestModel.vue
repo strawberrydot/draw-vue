@@ -12,6 +12,16 @@
             return {
             };
         },
+        beforeCreate() {
+
+        },
+        created() {
+            console.log('created----');
+            console.log(this);
+        },
+        beforeMount() {
+            console.log(this);
+        },
         mounted() {
             let view = document.getElementById('test');
             let obj = {};
@@ -35,6 +45,17 @@
                     clearInterval(interval);
                 }
             }, 1000);
+            console.log('mounted----');
+            console.log(this);
+
+        },
+        updated() {
+            console.log('updated----');
+            console.log(this);
+        },
+        destroyed() {
+            console.log('destroyed----');
+            console.log(this);
         }
     };
 </script>

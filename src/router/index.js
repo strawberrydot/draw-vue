@@ -13,11 +13,11 @@ export default new Router({
         {
             path: '/',
             component: WrapperView,
-            name: 'ParentA',
+            name: 'TestModel',
             children: [
                 {
                     path: '/',
-                    component: ParentA
+                    component: TestModel
                 }
             ]
         }

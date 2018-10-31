@@ -1,7 +1,7 @@
 <template>
     <div id="header">
         <div class="header-left">
-            <h5>Canvas Test</h5>
+            <h5>d3 Test</h5>
         </div>
         <div class="header-right">
             <i>

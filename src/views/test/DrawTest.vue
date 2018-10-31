@@ -1,7 +1,11 @@
 <template>
     <div id="draw-test">
-        <h5 style="text-align: center">George Pig</h5>
-        <canvas id="canvas" width="1000" height="1000"></canvas>
+        <div class="left-content">
+
+        </div>
+        <div class="right-content">
+
+        </div>
     </div>
 </template>
 
@@ -18,18 +22,7 @@
         created () {
         },
         mounted() {
-            let canvas = document.getElementById('canvas');
-            let context = canvas.getContext('2d');
 
-            // backgroud
-            context.beginPath();
-            context.fillStyle = '#0098FC';
-            context.arc(500, 300, 200, Math.PI / 4, Math.PI, true);
-
-            context.fill();
-            context.closePath();
-            context.fillStyle = '#0098FC';
-            context.fillRect(300, 300, 400, 200);
         }
     };
 </script>
@@ -38,5 +31,22 @@
     #draw-test {
         width: 100%;
         height: 100%;
+        .left-content {
+            height: 100%;
+            background-color: rgb(255, 255, 255);
+            position: relative;
+            box-sizing: border-box;
+            border-right: 1px solid rgb(239, 242, 247);
+            width: 200px;
+            padding-top: 189px;
+            float: left;
+            z-index: 1;
+        }
+        .right-content {
+            overflow: hidden;
+            height: 100%;
+            position: relative;
+            box-sizing: border-box;
+        }
     }
 </style>

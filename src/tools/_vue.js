@@ -682,6 +682,7 @@
         this.subs = [];
     };
 
+    // 添加一个观察者对象
     Dep.prototype.addSub = function addSub (sub) {
         this.subs.push(sub);
     };
@@ -690,12 +691,15 @@
         remove(this.subs, sub);
     };
 
+    // 依赖收集
+
     Dep.prototype.depend = function depend () {
         if (Dep.target) {
             Dep.target.addDep(this);
         }
     };
 
+    // 调用依赖收集的Watcher更新
     Dep.prototype.notify = function notify () {
         // stabilize the subscriber list first
         var subs = this.subs.slice();
@@ -822,7 +826,7 @@
         'sort',
         'reverse'
     ];
-
+    // 重新定义数组方法
     /**
      * Intercept mutating methods and emit events
      */
@@ -848,6 +852,7 @@
             if (inserted) { ob.observeArray(inserted); }
             // notify change
             ob.dep.notify();
+            // dep通知所有注册的观察者进行响应式处理
             return result
         });
     });
@@ -878,6 +883,7 @@
         this.vmCount = 0;
         def(value, '__ob__', this);
         if (Array.isArray(value)) {
+            // 数组
             var augment = hasProto
                 ? protoAugment
                 : copyAugment;
@@ -885,6 +891,7 @@
             this.observeArray(value);
         } else {
             this.walk(value);
+            // 对象
         }
     };
 
@@ -897,6 +904,7 @@
         var keys = Object.keys(obj);
         for (var i = 0; i < keys.length; i++) {
             defineReactive(obj, keys[i]);
+            // 为每一个对象都绑定上方法
         }
     };
 
