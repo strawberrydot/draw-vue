@@ -29,8 +29,8 @@ $(function() {
                 node.inputs = 1;
                 node.outputs = 0;
             } else {
-                node.inputs = 1;
-                node.outputs = 1;
+                node.inputs = 3;
+                node.outputs = 3;
             }
             // 计算节点编号
             if(workflow.nodes[node.dataId]) {
@@ -60,7 +60,12 @@ $(function() {
                         d3.selectAll("circle.end").classed("end", false);
                         d3.select(this).classed("end", true);
                     }
+                }).on("mouseout", function() {
+                    if(drawLine) {
+                        d3.selectAll("circle.end").classed("end", false);
+                    }
                 });
+            /*增加 鼠标移出入参时，移除.end，此时不添加line*/
         }
     });
 });
@@ -76,7 +81,8 @@ function linestarted() {
     // 当前选中的节点
     var node = d3.select(this.parentNode);
     var rect = node.node().getBoundingClientRect();
-    var dx = rect.width / (+anchor.attr("output") + 1);
+    /*校正 计算线的起始位置*/
+    var dx = (rect.width / (+node.attr("outputs") + 1)) * (anchor.attr("output"));
     var dy = rect.height;
     var transform = node.attr("transform");
     translate = getTranslate(transform);
@@ -86,8 +92,8 @@ function linestarted() {
         .attr("class", "cable")
         .attr("from", node.attr("id"))
         .attr("start", dx + ", " + dy)
-        .attr("output", d3.select(this).attr("output"))
-        .attr("marker-end", "url(#arrowhead)");
+        .attr("output", d3.select(this).attr("output"));
+        // .attr("marker-end", "url(#arrowhead)");
 }
 
 function linedragged() {
