@@ -29,8 +29,8 @@ $(function() {
                 node.inputs = 1;
                 node.outputs = 0;
             } else {
-                node.inputs = 3;
-                node.outputs = 3;
+                node.inputs = 4;
+                node.outputs = 4;
             }
             // 计算节点编号
             if(workflow.nodes[node.dataId]) {
@@ -74,6 +74,8 @@ var activeLine = null;
 var points = [];
 var translate = null;
 var drawLine = false;
+var optNum = 0;
+var optWidth = 0;
 function linestarted() {
     drawLine = false;
     // 当前选中的circle
@@ -94,6 +96,10 @@ function linestarted() {
         .attr("start", dx + ", " + dy)
         .attr("output", d3.select(this).attr("output"));
         // .attr("marker-end", "url(#arrowhead)");
+
+    optNum = +node.attr("outputs");
+    optWidth = rect.width / (+node.attr("outputs") + 1);
+
 }
 
 function linedragged() {
@@ -114,7 +120,7 @@ function lineended(d) {
         activeLine.remove();
     } else {
         var pNode = d3.select(anchor.node().parentNode);
-        var input = pNode.node().getBoundingClientRect().width / (+anchor.attr("input") + 1);
+        var input = pNode.node().getBoundingClientRect().width / (optNum + 1);
         anchor.classed("end", false);
         activeLine.attr("to", pNode.attr("id"));
         activeLine.attr("input", anchor.attr("input"));
@@ -147,13 +153,13 @@ function dragged() {
 }
 
 function updateCable(elem) {
+
     var bound = elem.node().getBoundingClientRect();
     var width = bound.width;
     var height = bound.height;
     var id = elem.attr("id");
     var transform = elem.attr("transform");
     var t1 = getTranslate(transform);
-
 
     // 更新输出线的位置
     d3.selectAll('path[from="' + id + '"]')
@@ -177,14 +183,14 @@ function updateCable(elem) {
 
     // 更新输入线的位置
     d3.selectAll('path[to="' + id + '"]')
-        .each(function() {
+        .each(function(d, index) {
             var path = d3.select(this).attr("d");
             var start = path.substring(1, path.indexOf("C")).split(",");
             start[0] = +start[0];
             start[1] = +start[1];
 
             var end = d3.select(this).attr("end").split(",");
-            end[0] = +end[0] + t1[0];
+            end[0] = +end[0] + t1[0] + index * optWidth;
             end[1] = +end[1] + t1[1];
 
             d3.select(this).attr("d", function() {
