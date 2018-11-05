@@ -74,8 +74,11 @@ var activeLine = null;
 var points = [];
 var translate = null;
 var drawLine = false;
+
+/* guxuan add */
 var optNum = 0;
 var optWidth = 0;
+
 function linestarted() {
     drawLine = false;
     // 当前选中的circle
@@ -95,8 +98,9 @@ function linestarted() {
         .attr("from", node.attr("id"))
         .attr("start", dx + ", " + dy)
         .attr("output", d3.select(this).attr("output"));
-        // .attr("marker-end", "url(#arrowhead)");
+        /*.attr("marker-end", "url(#arrowhead)");*/
 
+    /* 增加输出个数 和 每个输出之间的平均宽度 */
     optNum = +node.attr("outputs");
     optWidth = rect.width / (+node.attr("outputs") + 1);
 
@@ -190,6 +194,7 @@ function updateCable(elem) {
             start[1] = +start[1];
 
             var end = d3.select(this).attr("end").split(",");
+            /* path C 终点位置计算修正 */
             end[0] = +end[0] + t1[0] + index * optWidth;
             end[1] = +end[1] + t1[1];
 
