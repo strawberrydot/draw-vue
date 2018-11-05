@@ -29,8 +29,8 @@ $(function() {
                 node.inputs = 1;
                 node.outputs = 0;
             } else {
-                node.inputs = 4;
-                node.outputs = 4;
+                node.inputs = 2;
+                node.outputs = 2;
             }
             // 计算节点编号
             if(workflow.nodes[node.dataId]) {
@@ -125,10 +125,12 @@ function lineended(d) {
     } else {
         var pNode = d3.select(anchor.node().parentNode);
         var input = pNode.node().getBoundingClientRect().width / (optNum + 1);
+        let index = anchor.attr("input");
         anchor.classed("end", false);
         activeLine.attr("to", pNode.attr("id"));
         activeLine.attr("input", anchor.attr("input"));
-        activeLine.attr("end", input + ", 0");
+        /* path C end 位置计算修正 */
+        activeLine.attr("end", (input * index) + ", 0");
     }
     activeLine = null;
     points.length = 0;
@@ -190,14 +192,12 @@ function updateCable(elem) {
         .each(function(d, index) {
             var path = d3.select(this).attr("d");
             var start = path.substring(1, path.indexOf("C")).split(",");
+            var preEnd = path.substring(path.lastIndexOf(" ") + 1).split(",");
             start[0] = +start[0];
             start[1] = +start[1];
-
             var end = d3.select(this).attr("end").split(",");
-            /* path C 终点位置计算修正 */
-            end[0] = +end[0] + t1[0] + index * optWidth;
+            end[0] = +end[0] + t1[0];
             end[1] = +end[1] + t1[1];
-
             d3.select(this).attr("d", function() {
                 return "M" + start[0] + "," + start[1]
                     + " C" + start[0] + "," + (start[1] + end[1]) / 2
