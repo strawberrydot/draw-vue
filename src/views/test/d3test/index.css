@@ -85,12 +85,17 @@
 }
 
 .bpmn .node rect {
-    width:180px;
-    height:36px;
+    width: 180px;
+    height: 36px;
     cursor: pointer;
     stroke: #333;
-    stroke-width:2;
+    stroke-width: 2;
     fill: #fff;
+}
+
+.bpmn .node rect .bg {
+    stroke: green;
+    stroke-dasharray: 5;
 }
 
 .bpmn .node.active rect,

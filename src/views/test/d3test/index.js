@@ -19,17 +19,19 @@ $(function() {
                 y: ui.position.top - 40,
                 text: ui.helper.text(),
                 inputs: 1,
-                outputs: 2
+                outputs: 2,
+                status: 1
             };
 
             if(node.dataId == 101) {
                 node.inputs = 0;
                 node.outputs = 1;
+                node.status = 2;
             } else if(node.dataId == 102) {
                 node.inputs = 1;
                 node.outputs = 0;
             } else {
-                node.inputs = 4;
+                node.inputs = 6;
                 node.outputs = 3;
             }
             // 计算节点编号
@@ -55,7 +57,8 @@ $(function() {
             );
 
             g.selectAll("circle.input")
-                .on("mouseover", function() {
+                .on("mouseover", function(d, i, target) {
+                    console.log(i);
                     if(drawLine) {
                         d3.selectAll("circle.end").classed("end", false);
                         d3.select(this).classed("end", true);
@@ -66,6 +69,11 @@ $(function() {
                     }
                 });
             /*增加 鼠标移出入参时，移除.end，此时不添加line*/
+            g.selectAll("rect").on("mouseover", function (d, i, target) {
+               if (drawLine) {
+                   console.log('拖拽入rect范围内');
+               }
+            });
         }
     });
 });
@@ -75,7 +83,7 @@ var points = [];
 var translate = null;
 var drawLine = false;
 
-/* guxuan add */
+/* add */
 var optNum = 0;
 var optWidth = 0;
 
@@ -104,6 +112,9 @@ function linestarted() {
     optNum = +node.attr("outputs");
     optWidth = rect.width / (+node.attr("outputs") + 1);
 
+    /* 连线时区分当前所选节点与其他节点 */
+    d3.selectAll('rect').attr('stroke', 'green').attr('stroke-dasharray', '5');
+    d3.select(this.parentNode).select('rect').attr('stroke', '#333').attr('stroke-dasharray', 'none');
 }
 
 function linedragged() {
@@ -137,6 +148,8 @@ function lineended(d) {
     activeLine = null;
     points.length = 0;
     translate = null;
+    d3.selectAll('rect').attr('stroke-dasharray', 'none');
+
 }
 
 function getTranslate(transform) {
