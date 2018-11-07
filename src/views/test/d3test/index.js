@@ -11,6 +11,9 @@ $(function() {
         start: function (e, ui) {
             ui.helper.addClass("ui-draggable-helper");
         },
+        drag: function (e, ui) {
+
+        },
         stop: function (e, ui) {
             var node = {
                 id: new Date().getTime(),
@@ -23,19 +26,22 @@ $(function() {
                 status: 1
             };
 
-            if(node.dataId == 101) {
+            if (node.dataId == 101) {
                 node.inputs = 0;
                 node.outputs = 1;
                 node.status = 2;
-            } else if(node.dataId == 102) {
+            } else if (node.dataId == 102) {
                 node.inputs = 1;
                 node.outputs = 0;
+            } else if (node.dataId == 216) {
+                node.inputs = 1;
+                node.outputs = 2;
             } else {
-                node.inputs = 6;
+                node.inputs = 3;
                 node.outputs = 3;
             }
             // 计算节点编号
-            if(workflow.nodes[node.dataId]) {
+            if (workflow.nodes[node.dataId]) {
                 workflow.nodes[node.dataId] += 1;
             } else {
                 workflow.nodes[node.dataId] = 1;
@@ -57,22 +63,37 @@ $(function() {
             );
 
             g.selectAll("circle.input")
-                .on("mouseover", function(d, i, target) {
-                    console.log(i);
-                    if(drawLine) {
+                .on("mouseover", function (d, i, target) {
+                    if (drawLine) {
                         d3.selectAll("circle.end").classed("end", false);
                         d3.select(this).classed("end", true);
                     }
-                }).on("mouseout", function() {
-                    if(drawLine) {
-                        d3.selectAll("circle.end").classed("end", false);
-                    }
-                });
+                }).on("mouseout", function () {
+                if (drawLine) {
+                    d3.selectAll("circle.end").classed("end", false);
+                }
+            });
             /*增加 鼠标移出入参时，移除.end，此时不添加line*/
             g.selectAll("rect").on("mouseover", function (d, i, target) {
-               if (drawLine) {
-                   console.log('拖拽入rect范围内');
-               }
+                if (drawLine) {
+                    nearestNum = [];
+                    console.log('拖拽入rect范围内');
+                    d3.selectAll("rect.flag").classed("flag", false);
+                    d3.select(this).classed("flag", true);
+                    var num = d3.select(this.parentNode).attr('inputs');
+                    var transform = d3.select(this.parentNode).attr("transform");
+                    var tran = getTranslate(transform);
+                    var rectWidth = d3.select(this.parentNode).node().getBoundingClientRect().width;
+                    let array = [];
+                    for (var i = 1;i <= num;i++) {
+                        array.push(i * (rectWidth / (+num + 1)) + tran[0]) ;
+                    }
+                    nearestNum[0] = getNearestNum(array, points[1][0]);
+                    end = nearestNum[0] - tran[0];
+                    nearestNum[1] = tran[1];
+                    let cNum = end / (rectWidth / (+num + 1));
+                    d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+                }
             });
         }
     });
@@ -82,6 +103,8 @@ var activeLine = null;
 var points = [];
 var translate = null;
 var drawLine = false;
+let nearestNum = [];
+let end;
 
 /* add */
 var optNum = 0;
@@ -106,60 +129,97 @@ function linestarted() {
         .attr("from", node.attr("id"))
         .attr("start", dx + ", " + dy)
         .attr("output", d3.select(this).attr("output"));
-        /*.attr("marker-end", "url(#arrowhead)");*/
+    /*.attr("marker-end", "url(#arrowhead)");*/
 
     /* 增加输出个数 和 每个输出之间的平均宽度 */
     optNum = +node.attr("outputs");
     optWidth = rect.width / (+node.attr("outputs") + 1);
 
-    /* 连线时区分当前所选节点与其他节点 */
+    /* 连线时区分当前所选节点与其他节点 background */
     d3.selectAll('rect').attr('stroke', 'green').attr('stroke-dasharray', '5');
     d3.select(this.parentNode).select('rect').attr('stroke', '#333').attr('stroke-dasharray', 'none');
+
+    /* 有效的出入点 区分 */
+    d3.selectAll('circle.output').classed('invalid', true);
+    d3.select(this).classed('invalid', false);
+    d3.selectAll('circle.input').classed('valid', true);
+    d3.select(this.parentNode).selectAll('circle.input').classed('valid', false);
 }
 
 function linedragged() {
     drawLine = true;
     points[1] = [d3.event.x + translate[0], d3.event.y + translate[1]];
-    activeLine.attr("d", function() {
+    activeLine.attr("d", function () {
         return "M" + points[0][0] + "," + points[0][1]
             + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
-            + " " + points[1][0] + "," +  (points[0][1] + points[1][1]) / 2
+            + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
             + " " + points[1][0] + "," + points[1][1];
     });
 }
 
 function lineended(d) {
     drawLine = false;
+    var rect = d3.selectAll("rect.flag");
     var anchor = d3.selectAll("circle.end");
-    if(anchor.empty()) {
+    if (anchor.empty()) {
         activeLine.remove();
     } else {
+        console.log(end);
         var pNode = d3.select(anchor.node().parentNode);
         var inputNum;
         inputNum = +pNode.attr('inputs');
         var input = pNode.node().getBoundingClientRect().width / (inputNum + 1);
         let index = anchor.attr("input");
+        // 吸附 todo
+        activeLine.attr("d", function () {
+            return "M" + points[0][0] + "," + points[0][1]
+                + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + nearestNum[0] + "," + nearestNum[1];
+        });
         anchor.classed("end", false);
         activeLine.attr("to", pNode.attr("id"));
         activeLine.attr("input", anchor.attr("input"));
         /* path C end 位置计算修正 */
-        activeLine.attr("end", (input * index) + ", 0");
+        activeLine.attr("end", input * index + ", 0");
     }
     activeLine = null;
     points.length = 0;
     translate = null;
     d3.selectAll('rect').attr('stroke-dasharray', 'none');
+    d3.selectAll('circle.output').classed('invalid', false);
+    d3.selectAll('circle.input').classed('valid', false);
 
 }
 
 function getTranslate(transform) {
-    var arr = transform.substring(transform.indexOf("(")+1, transform.indexOf(")")).split(",");
+    var arr = transform.substring(transform.indexOf("(") + 1, transform.indexOf(")")).split(",");
     return [+arr[0], +arr[1]];
+}
+
+function getNearestNum(array, val) {
+    if (array && array.length) {
+        array.push(val);
+        console.log(array.sort());
+        let index = array.sort().indexOf(val);
+        if (index) {
+            if (val - array.sort()[index - 1] >= array.sort()[index + 1] - val) {
+                return array.sort()[index + 1];
+            } else {
+                return array.sort()[index - 1];
+            }
+        } else {
+            return array.sort()[index + 1];
+        }
+    } else {
+        return false;
+    }
 }
 
 var dx = 0;
 var dy = 0;
 var dragElem = null;
+
 function dragstarted() {
     var transform = d3.select(this).attr("transform");
     var translate = getTranslate(transform);
@@ -184,7 +244,7 @@ function updateCable(elem) {
 
     // 更新输出线的位置
     d3.selectAll('path[from="' + id + '"]')
-        .each(function() {
+        .each(function () {
             var start = d3.select(this).attr("start").split(",");
             start[0] = +start[0] + t1[0];
             start[1] = +start[1] + t1[1];
@@ -194,27 +254,27 @@ function updateCable(elem) {
             end[0] = +end[0];
             end[1] = +end[1];
 
-            d3.select(this).attr("d", function() {
+            d3.select(this).attr("d", function () {
                 return "M" + start[0] + "," + start[1]
                     + " C" + start[0] + "," + (start[1] + end[1]) / 2
-                    + " " + end[0] + "," +  (start[1] + end[1]) / 2
+                    + " " + end[0] + "," + (start[1] + end[1]) / 2
                     + " " + end[0] + "," + end[1];
             });
         });
 
     // 更新输入线的位置
     d3.selectAll('path[to="' + id + '"]')
-        .each(function(d, index) {
+        .each(function (d, index) {
             var path = d3.select(this).attr("d");
             var start = path.substring(1, path.indexOf("C")).split(",");
             start[1] = +start[1];
             var end = d3.select(this).attr("end").split(",");
             end[0] = +end[0] + t1[0];
             end[1] = +end[1] + t1[1];
-            d3.select(this).attr("d", function() {
+            d3.select(this).attr("d", function () {
                 return "M" + start[0] + "," + start[1]
                     + " C" + start[0] + "," + (start[1] + end[1]) / 2
-                    + " " + end[0] + "," +  (start[1] + end[1]) / 2
+                    + " " + end[0] + "," + (start[1] + end[1]) / 2
                     + " " + end[0] + "," + end[1];
             });
         });
@@ -273,7 +333,7 @@ function addNode(svg, node) {
     // input circle
     var inputs = node.inputs || 0;
     g.attr("inputs", inputs);
-    for(var i = 0; i < inputs; i++) {
+    for (var i = 0; i < inputs; i++) {
         g.append("circle")
             .attr("class", "input")
             .attr("input", (i + 1))
@@ -285,7 +345,7 @@ function addNode(svg, node) {
     // output circle
     var outputs = node.outputs || 0;
     g.attr("outputs", outputs);
-    for(i = 0; i < outputs; i++) {
+    for (i = 0; i < outputs; i++) {
         g.append("circle")
             .attr("output", (i + 1))
             .attr("class", "output")

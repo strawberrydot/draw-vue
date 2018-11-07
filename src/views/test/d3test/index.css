@@ -114,6 +114,14 @@
     fill: orange;
 }
 
+.bpmn .node circle.output.invalid {
+    fill: red;
+}
+
+.bpmn .node circle.input.valid {
+    fill: green;
+}
+
 .bpmn .cable {
     stroke: #333;
     stroke-width: 2px;
