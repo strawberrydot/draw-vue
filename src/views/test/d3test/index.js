@@ -165,19 +165,20 @@ function lineended(d) {
     if (anchor.empty()) {
         activeLine.remove();
     } else {
-        console.log(end);
         var pNode = d3.select(anchor.node().parentNode);
         var inputNum;
         inputNum = +pNode.attr('inputs');
         var input = pNode.node().getBoundingClientRect().width / (inputNum + 1);
         let index = anchor.attr("input");
         // 吸附 todo
-        activeLine.attr("d", function () {
-            return "M" + points[0][0] + "," + points[0][1]
-                + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
-                + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
-                + " " + nearestNum[0] + "," + nearestNum[1];
-        });
+        if (nearestNum && nearestNum.length) {
+            activeLine.attr("d", function () {
+                return "M" + points[0][0] + "," + points[0][1]
+                    + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
+                    + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
+                    + " " + nearestNum[0] + "," + nearestNum[1];
+            });
+        }
         anchor.classed("end", false);
         activeLine.attr("to", pNode.attr("id"));
         activeLine.attr("input", anchor.attr("input"));
