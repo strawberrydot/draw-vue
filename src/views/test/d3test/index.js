@@ -90,7 +90,8 @@ $(function() {
                     }
                     nearestNum[0] = getNearestNum(array, points[1][0]);
                     end = nearestNum[0] - tran[0];
-                    nearestNum[1] = tran[1];
+                    nearestNum[1] = +tran[1] - 5;
+                    /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过园内 */
                     let cNum = end / (rectWidth / (+num + 1));
                     d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
                 }
@@ -270,7 +271,7 @@ function updateCable(elem) {
             start[1] = +start[1];
             var end = d3.select(this).attr("end").split(",");
             end[0] = +end[0] + t1[0];
-            end[1] = +end[1] + t1[1];
+            end[1] = +end[1] + t1[1] - 5;
             d3.select(this).attr("d", function () {
                 return "M" + start[0] + "," + start[1]
                     + " C" + start[0] + "," + (start[1] + end[1]) / 2
