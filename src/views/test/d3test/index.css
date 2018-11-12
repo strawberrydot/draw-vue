@@ -127,3 +127,11 @@
     stroke-width: 2px;
     fill: none;
 }
+
+.hover {
+    width: 150px;
+    height: 40px;
+    padding: 8px 10px;
+    background-color: #333333;
+    color: #FFFFFF;
+}

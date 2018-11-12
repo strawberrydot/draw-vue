@@ -687,6 +687,7 @@
         this.subs.push(sub);
     };
 
+    // 移除一个观察者对象
     Dep.prototype.removeSub = function removeSub (sub) {
         remove(this.subs, sub);
     };
@@ -694,6 +695,7 @@
     // 依赖收集
 
     Dep.prototype.depend = function depend () {
+        // Dep.target 全局的
         if (Dep.target) {
             Dep.target.addDep(this);
         }
@@ -712,6 +714,7 @@
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
     Dep.target = null;
+    // 依赖收集完要将Dep.target置空，防止重复添加依赖
     var targetStack = [];
 
     function pushTarget (_target) {
@@ -888,8 +891,10 @@
                 ? protoAugment
                 : copyAugment;
             augment(value, arrayMethods, arrayKeys);
+            // 遍历数组的每一个成员进行observe
             this.observeArray(value);
         } else {
+            // 直接进行绑定
             this.walk(value);
             // 对象
         }
@@ -905,6 +910,7 @@
         for (var i = 0; i < keys.length; i++) {
             defineReactive(obj, keys[i]);
             // 为每一个对象都绑定上方法
+            // walk方法会遍历对象的每一个属性进行defineReactive绑定
         }
     };
 
@@ -946,11 +952,13 @@
      * returns the new observer if successfully observed,
      * or the existing observer if the value already has one.
      */
+    // Observer的作用就是遍历对象的所有属性将其进行双向绑定
     function observe (value, asRootData) {
         if (!isObject(value) || value instanceof VNode) {
             return
         }
         var ob;
+        // 这里用__ob__这个属性来判断是否已经有Observer实例，如果没有Observer实例则会新建一个Observer实例并赋值给__ob__这个属性，如果已有Observer实例则直接返回该Observer实例   ？？？
         if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
             ob = value.__ob__;
         } else if (
@@ -961,8 +969,10 @@
             !value._isVue
         ) {
             ob = new Observer(value);
+            // 将data变成可观察者对象
         }
         if (asRootData && ob) {
+            // 如果是根数据则计数，后面Observer中的observe的asRootData非true   ？？？
             ob.vmCount++;
         }
         return ob
@@ -978,6 +988,7 @@
         customSetter,
         shallow
     ) {
+        // 创建Dep对象收集依赖
         var dep = new Dep();
 
         var property = Object.getOwnPropertyDescriptor(obj, key);
@@ -1000,6 +1011,7 @@
                 var value = getter ? getter.call(obj) : val;
                 if (Dep.target) {
                     dep.depend();
+                    // 收集依赖，确保只有使用了的值才会收集
                     if (childOb) {
                         childOb.dep.depend();
                         if (Array.isArray(value)) {
@@ -1024,8 +1036,10 @@
                 } else {
                     val = newVal;
                 }
+                // 新加的数据转换为可观察者对象
                 childOb = !shallow && observe(newVal);
                 dep.notify();
+                // 通知Watcher更新操作
             }
         });
     }
@@ -2795,12 +2809,14 @@
             updateComponent = function () {
                 vm._update(vm._render(), hydrating);
             };
+            // watcher更新时调用
         }
 
         // we set this to vm._watcher inside the watcher's constructor
         // since the watcher's initial patch may call $forceUpdate (e.g. inside child
         // component's mounted hook), which relies on vm._watcher being already defined
         new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */);
+        // Dep.target 其实就是一个Watcher实例 ???
         hydrating = false;
 
         // manually mounted instance, call mounted on self
@@ -3142,6 +3158,7 @@
      */
     Watcher.prototype.get = function get () {
         pushTarget(this);
+        // 给Dep对象增加target属性
         var value;
         var vm = this.vm;
         try {
@@ -3205,6 +3222,8 @@
      * Subscriber interface.
      * Will be called when a dependency changes.
      */
+    // 更新
+    // 每次数据变更就会调用
     Watcher.prototype.update = function update () {
         /* istanbul ignore else */
         if (this.lazy) {
@@ -3223,6 +3242,7 @@
     Watcher.prototype.run = function run () {
         if (this.active) {
             var value = this.get();
+            // 数据驱动视图更新的核心方法
             if (
                 value !== this.value ||
                 // Deep watchers and watchers on Object/Arrays should fire even
@@ -3314,6 +3334,7 @@
         if (opts.props) { initProps(vm, opts.props); }
         if (opts.methods) { initMethods(vm, opts.methods); }
         if (opts.data) {
+            // 有data
             initData(vm);
         } else {
             observe(vm._data = {}, true /* asRootData */);
@@ -3372,11 +3393,14 @@
         toggleObserving(true);
     }
 
+    // initData主要是初始化data中的数据，将数据进行Oberver，监听数据的变化
     function initData (vm) {
         var data = vm.$options.data;
+        // 得到data数据
         data = vm._data = typeof data === 'function'
             ? getData(data, vm)
             : data || {};
+        // 判断是否是对象
         if (!isPlainObject(data)) {
             data = {};
             "development" !== 'production' && warn(
@@ -3386,10 +3410,12 @@
             );
         }
         // proxy data on instance
+        // 遍历data对象
         var keys = Object.keys(data);
         var props = vm.$options.props;
         var methods = vm.$options.methods;
         var i = keys.length;
+        // 遍历data中的数据
         while (i--) {
             var key = keys[i];
             {
@@ -3400,18 +3426,25 @@
                     );
                 }
             }
+            // 保证data中的key不与props中的key重复，props优先，如果冲突会产生warnning
             if (props && hasOwn(props, key)) {
                 "development" !== 'production' && warn(
                     "The data property \"" + key + "\" is already declared as a prop. " +
                     "Use prop default value instead.",
                     vm
                 );
+                // 判断是否是保留字段
             } else if (!isReserved(key)) {
+                // 代理 将data上面的属性代理到vm实例上来
                 proxy(vm, "_data", key);
+                // vm.name的改变同步到vm._data.name的改变
             }
         }
         // observe data
+        // 开始对数据进行绑定
         observe(data, true /* asRootData */);
+
+        // 1.将_data上面的数据代理到vm上;2.通过observe将所有数据变成observable。
     }
 
     function getData (data, vm) {
@@ -4722,6 +4755,7 @@
             warn('Vue is a constructor and should be called with the `new` keyword');
         }
         this._init(options);
+        // 初始化
     }
 
     initMixin(Vue);

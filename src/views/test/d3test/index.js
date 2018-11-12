@@ -1,6 +1,11 @@
 var workflow = {
     nodes: {}
 };
+var nodes = [];
+var links = [];
+
+var tooltip;
+
 $(function() {
     var svg = d3.select("svg");
     // 绑定拖拽
@@ -23,7 +28,8 @@ $(function() {
                 text: ui.helper.text(),
                 inputs: 1,
                 outputs: 2,
-                status: 1
+                status: 1,
+                type: 1
             };
 
             if (node.dataId == 101) {
@@ -33,12 +39,15 @@ $(function() {
             } else if (node.dataId == 102) {
                 node.inputs = 1;
                 node.outputs = 0;
+                node.type = 2;
             } else if (node.dataId == 216) {
                 node.inputs = 1;
                 node.outputs = 2;
+                node.type = 3;
             } else {
                 node.inputs = 3;
                 node.outputs = 3;
+                node.type = 4;
             }
             // 计算节点编号
             if (workflow.nodes[node.dataId]) {
@@ -46,6 +55,10 @@ $(function() {
             } else {
                 workflow.nodes[node.dataId] = 1;
             }
+
+            nodes.push(node);
+            console.log(nodes);
+
             var g = addNode(svg, node);
 
             g.call(
@@ -91,10 +104,27 @@ $(function() {
                     nearestNum[0] = getNearestNum(array, points[1][0]);
                     end = nearestNum[0] - tran[0];
                     nearestNum[1] = +tran[1] - 5;
-                    /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过园内 */
+                    /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
                     let cNum = end / (rectWidth / (+num + 1));
                     d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
                 }
+            });
+
+            // tooltip
+            g.selectAll("text.rightIcon").on("mouseover", function() {
+                tooltip = d3.select("body")
+                    .append("div")
+                    .style("position", "absolute")
+                    .style("z-index", "10")
+                    .style("visibility", "hidden")
+                    .attr("class", "hover")
+                    .text("a simple tooltip");
+                return tooltip.style("visibility", "visible");
+            }).on("mousemove", function() {
+                return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
+            }).on("mouseout", function() {
+                tooltip.remove();
+                return tooltip.style("visibility", "hidden");
             });
         }
     });
@@ -156,11 +186,11 @@ function linedragged() {
             + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
             + " " + points[1][0] + "," + points[1][1];
     });
+
 }
 
 function lineended(d) {
     drawLine = false;
-    var rect = d3.selectAll("rect.flag");
     var anchor = d3.selectAll("circle.end");
     if (anchor.empty()) {
         activeLine.remove();
@@ -202,7 +232,6 @@ function getTranslate(transform) {
 function getNearestNum(array, val) {
     if (array && array.length) {
         array.push(val);
-        console.log(array.sort());
         let index = array.sort().indexOf(val);
         if (index) {
             if (val - array.sort()[index - 1] >= array.sort()[index + 1] - val) {
@@ -330,7 +359,8 @@ function addNode(svg, node) {
         .attr("dominant-baseline", "central")
         .attr("text-anchor", "middle")
         .attr('font-family', 'FontAwesome')
-        .text('\uf00c');
+        .text('\uf00c')
+        .attr("class", "rightIcon");
 
     // input circle
     var inputs = node.inputs || 0;
