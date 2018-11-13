@@ -1,6 +1,47 @@
 var workflow = {
     nodes: {}
 };
+
+var defaultData =
+    {
+        nodes: [
+            {
+                id: 1,
+                dataId: 1,
+                x: 283,
+                y: 32,
+                text: "数据连接",
+                inputs: 1,
+                outputs: 1,
+                status: 1,
+                type: 1
+            },
+            {
+                id: 2,
+                dataId: 2,
+                x: 52,
+                y: 133,
+                text: "选择分析列",
+                inputs: 2,
+                outputs: 2,
+                status: 1,
+                type: 2
+            }],
+        links: [
+            {
+                source: [283, 32],
+                target: [52, 133],
+                inPort: 1,
+                outPort: 0
+            },
+            {
+                source: [283, 32],
+                target: [52, 133],
+                inPort: 1,
+                outPort: 0
+            }
+        ]
+    };
 var nodes = [];
 var links = [];
 
@@ -8,6 +49,20 @@ var tooltip;
 
 $(function() {
     var svg = d3.select("svg");
+
+    if (defaultData && defaultData.nodes) {
+        defaultData.nodes.forEach(item => {
+            var g = addNode(svg, item);
+            addEvents(g);
+        });
+    }
+
+    if (defaultData && defaultData.links) {
+        defaultData.links.forEach(item => {
+            addLink(svg, item);
+        });
+    }
+
     // 绑定拖拽
     $('#left-wrapper .node').draggable({
         helper: "clone",
@@ -56,76 +111,11 @@ $(function() {
                 workflow.nodes[node.dataId] = 1;
             }
 
-            nodes.push(node);
-            console.log(nodes);
+            defaultData.nodes.push(node);
 
             var g = addNode(svg, node);
+            addEvents(g);
 
-            g.call(
-                d3.drag()
-                    .on("start", dragstarted)
-                    .on("drag", dragged)
-                    .on("end", dragended)
-            );
-
-            g.selectAll("circle.output").call(
-                d3.drag()
-                    .on("start", linestarted)
-                    .on("drag", linedragged)
-                    .on("end", lineended)
-            );
-
-            g.selectAll("circle.input")
-                .on("mouseover", function (d, i, target) {
-                    if (drawLine) {
-                        d3.selectAll("circle.end").classed("end", false);
-                        d3.select(this).classed("end", true);
-                    }
-                }).on("mouseout", function () {
-                if (drawLine) {
-                    d3.selectAll("circle.end").classed("end", false);
-                }
-            });
-            /*增加 鼠标移出入参时，移除.end，此时不添加line*/
-            g.selectAll("rect").on("mouseover", function (d, i, target) {
-                if (drawLine) {
-                    nearestNum = [];
-                    console.log('拖拽入rect范围内');
-                    d3.selectAll("rect.flag").classed("flag", false);
-                    d3.select(this).classed("flag", true);
-                    var num = d3.select(this.parentNode).attr('inputs');
-                    var transform = d3.select(this.parentNode).attr("transform");
-                    var tran = getTranslate(transform);
-                    var rectWidth = d3.select(this.parentNode).node().getBoundingClientRect().width;
-                    let array = [];
-                    for (var i = 1;i <= num;i++) {
-                        array.push(i * (rectWidth / (+num + 1)) + tran[0]) ;
-                    }
-                    nearestNum[0] = getNearestNum(array, points[1][0]);
-                    end = nearestNum[0] - tran[0];
-                    nearestNum[1] = +tran[1] - 5;
-                    /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
-                    let cNum = end / (rectWidth / (+num + 1));
-                    d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
-                }
-            });
-
-            // tooltip
-            g.selectAll("text.rightIcon").on("mouseover", function() {
-                tooltip = d3.select("body")
-                    .append("div")
-                    .style("position", "absolute")
-                    .style("z-index", "10")
-                    .style("visibility", "hidden")
-                    .attr("class", "hover")
-                    .text("a simple tooltip");
-                return tooltip.style("visibility", "visible");
-            }).on("mousemove", function() {
-                return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
-            }).on("mouseout", function() {
-                tooltip.remove();
-                return tooltip.style("visibility", "hidden");
-            });
         }
     });
 });
@@ -140,6 +130,85 @@ let end;
 /* add */
 var optNum = 0;
 var optWidth = 0;
+
+
+/* 事件绑定 */
+function addEvents(g) {
+    g.call(
+        d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended)
+    );
+
+    g.selectAll("circle.output").call(
+        d3.drag()
+            .on("start", linestarted)
+            .on("drag", linedragged)
+            .on("end", lineended)
+    );
+
+    d3.selectAll('.node').data(defaultData);
+
+    g.selectAll("circle.input")
+        .on("mouseover", function (d, i, target) {
+            // todo
+            // 存在bug 同一个.node上的出入参可生成连线
+            if (drawLine) {
+                d3.selectAll("circle.end").classed("end", false);
+                d3.select(this).classed("end", true);
+            }
+        }).on("mouseout", function () {
+            if (drawLine) {
+                d3.selectAll("circle.end").classed("end", false);
+            }
+        });
+    /*增加 鼠标移出入参时，移除.end，此时不添加line*/
+
+    g.selectAll("rect").on("mouseover", function (d, i, target) {
+        if (drawLine) {
+            nearestNum = [];
+            console.log('拖拽入rect范围内');
+            d3.selectAll("rect.flag").classed("flag", false);
+            d3.select(this).classed("flag", true);
+            var num = d3.select(this.parentNode).attr('inputs');
+            var transform = d3.select(this.parentNode).attr("transform");
+            var tran = getTranslate(transform);
+            var rectWidth = d3.select(this.parentNode).node().getBoundingClientRect().width;
+            let array = [];
+            for (var i = 1;i <= num;i++) {
+                array.push(i * (rectWidth / (+num + 1)) + tran[0]) ;
+            }
+            nearestNum[0] = getNearestNum(array, points[1][0]);
+            end = nearestNum[0] - tran[0];
+            nearestNum[1] = +tran[1] - 5;
+            /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
+            let cNum = end / (rectWidth / (+num + 1));
+            d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+        }
+    });
+
+    // tooltip
+    g.selectAll("text.rightIcon").on("mouseover", function() {
+        // d3.select(d3.select(this.parentNode).node()) 获取到g标签 然后在获取g上面的type属性
+        let type = +d3.select(d3.select(this.parentNode).node()).attr("type");
+        let typeStr = getTypeStr(type);
+        tooltip = d3.select("body")
+            .append("div")
+            .style("position", "absolute")
+            .style("z-index", "10")
+            .style("visibility", "hidden")
+            .attr("class", "hover")
+            .text(typeStr);
+        return tooltip.style("visibility", "visible");
+    }).on("mousemove", function() {
+        return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
+    }).on("mouseout", function() {
+        tooltip.remove();
+        return tooltip.style("visibility", "hidden");
+    });
+
+}
 
 function linestarted() {
     drawLine = false;
@@ -162,7 +231,7 @@ function linestarted() {
         .attr("output", d3.select(this).attr("output"));
     /*.attr("marker-end", "url(#arrowhead)");*/
 
-    /* 增加输出个数 和 每个输出之间的平均宽度 */
+    /* 输出个数 和 每个输出之间的平均宽度 */
     optNum = +node.attr("outputs");
     optWidth = rect.width / (+node.attr("outputs") + 1);
 
@@ -322,7 +391,8 @@ function addNode(svg, node) {
         .attr("class", "node")
         .attr("data-id", node.dataId)
         .attr("id", node.id)
-        .attr("transform", 'translate(' + node.x + ', ' + node.y + ')');
+        .attr("transform", 'translate(' + node.x + ', ' + node.y + ')')
+        .attr("type", node.type);
 
     var rect = g.append("rect")
         .attr("rx", 5)
@@ -387,4 +457,22 @@ function addNode(svg, node) {
     }
 
     return g;
+}
+
+// 绘制连线
+function addLink(svg, link) {
+
+}
+
+function getTypeStr(type) {
+    let result = "";
+    switch(type) {
+        case 1 :
+            result = "this is data tooltip";
+            break;
+        case 2:
+            result = "this is a simple tooltip";
+            break;
+    }
+    return result;
 }
