@@ -2,6 +2,8 @@ var workflow = {
     nodes: {}
 };
 
+const CIRCLE_RADIUS = 5;
+
 var defaultData =
     {
         nodes: [
@@ -29,22 +31,24 @@ var defaultData =
             }],
         links: [
             {
-                fromId: 1,
-                toId: 2,
-                source: [283, 32],
-                target: [152, 142],
-                inPort: 0,
-                outPort: 0,
-                fromOutputs: 1,
-                toInputs: 2
-            },
-            {
+                id: 11,
                 fromId: 1,
                 toId: 2,
                 source: [283, 32],
                 target: [152, 142],
                 inPort: 1,
-                outPort: 0,
+                outPort: 1,
+                fromOutputs: 1,
+                toInputs: 2
+            },
+            {
+                id: 12,
+                fromId: 1,
+                toId: 2,
+                source: [283, 32],
+                target: [152, 142],
+                inPort: 2,
+                outPort: 1,
                 fromOutputs: 1,
                 toInputs: 2
             }
@@ -119,6 +123,7 @@ $(function() {
                 workflow.nodes[node.dataId] = 1;
             }
 
+            // add node
             defaultData.nodes.push(node);
 
             var g = addNode(svg, node);
@@ -134,12 +139,13 @@ var translate = null;
 var drawLine = false;
 let nearestNum = [];
 let end;
+let link = {};
 
 /* add */
 var optNum = 0;
 var optWidth = 0;
 var rectWidth = 180;
-var rectHeight = 46;
+var rectHeight = 36;
 // 建议固定rect宽高，因为后续连线涉及到计算
 // 若text超出宽度，可省略以...显示，点击节点，右边会有对应详情显示
 
@@ -163,8 +169,6 @@ function addEvents(g) {
 
     g.selectAll("circle.input")
         .on("mouseover", function (d, i, target) {
-            // todo
-            // 存在bug 同一个.node上的出入参可生成连线
             if (drawLine) {
                 d3.selectAll("circle.end").classed("end", false);
                 d3.select(this).classed("end", true);
@@ -192,7 +196,7 @@ function addEvents(g) {
             }
             nearestNum[0] = getNearestNum(array, points[1][0]);
             end = nearestNum[0] - tran[0];
-            nearestNum[1] = +tran[1] - 5;
+            nearestNum[1] = +tran[1] - CIRCLE_RADIUS;
             /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
             let cNum = end / (rectWidth / (+num + 1));
             d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
@@ -230,7 +234,7 @@ function linestarted() {
     var rect = node.node().getBoundingClientRect();
     rectWidth = rect.width;
     rectHeight = rect.height;
-    console.log(rectHeight);
+
     /*校正 计算线的起始位置*/
     var dx = (rect.width / (+node.attr("outputs") + 1)) * (anchor.attr("output"));
     var dy = rect.height;
@@ -258,6 +262,10 @@ function linestarted() {
     d3.select(this).classed('invalid', false);
     d3.selectAll('circle.input').classed('valid', true);
     d3.select(this.parentNode).selectAll('circle.input').classed('valid', false);
+
+
+    link.outPort = +anchor.attr("output");
+    link.fromOutputs = +node.attr("outputs");
 }
 
 function linedragged() {
@@ -269,12 +277,12 @@ function linedragged() {
             + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
             + " " + points[1][0] + "," + points[1][1];
     });
-
 }
 
 function lineended(d) {
     drawLine = false;
     var anchor = d3.selectAll("circle.end");
+
     if (anchor.empty()) {
         activeLine.remove();
     } else {
@@ -283,6 +291,7 @@ function lineended(d) {
         inputNum = +pNode.attr('inputs');
         var input = pNode.node().getBoundingClientRect().width / (inputNum + 1);
         let index = anchor.attr("input");
+
         // 吸附优化 todo
         if (nearestNum && nearestNum.length) {
             activeLine.attr("d", function () {
@@ -297,10 +306,28 @@ function lineended(d) {
         activeLine.attr("input", anchor.attr("input"));
         /* path C end 位置计算修正 */
         activeLine.attr("end", input * index + ", 0");
+
+        if (+activeLine.attr("from") === +pNode.attr("id")) {
+            // 解决bug 同一个.node上的出入参可生成连线
+            activeLine.remove();
+        } else {
+            // anchor.attr("data-type", +activeLine.attr("from") + ", " +pNode.attr("id"));
+        }
+
+        // add link
+        link.fromId = activeLine.attr("from");
+        link.toId = activeLine.attr("to");
+        link.source = translate;
+        link.target = getTranslate(pNode.attr("transform"));
+        link.inPort = +anchor.attr("input");
+        link.toInputs = +pNode.attr('inputs');
+
+        defaultData.links.push(link);
     }
     activeLine = null;
     points.length = 0;
     translate = null;
+    link = {};
     d3.selectAll('rect').attr('stroke-dasharray', 'none');
     d3.selectAll('circle.output').classed('invalid', false);
     d3.selectAll('circle.input').classed('valid', false);
@@ -384,7 +411,7 @@ function updateCable(elem) {
             start[1] = +start[1];
             var end = d3.select(this).attr("end").split(",");
             end[0] = +end[0] + t1[0];
-            end[1] = +end[1] + t1[1] - 5;
+            end[1] = +end[1] + t1[1] - CIRCLE_RADIUS;
             d3.select(this).attr("d", function () {
                 return "M" + start[0] + "," + start[1]
                     + " C" + start[0] + "," + (start[1] + end[1]) / 2
@@ -392,7 +419,6 @@ function updateCable(elem) {
                     + " " + end[0] + "," + end[1];
             });
         });
-
 }
 
 function dragended() {
@@ -457,7 +483,7 @@ function addNode(svg, node) {
             .attr("input", (i + 1))
             .attr("cx", width * (i + 1) / (inputs + 1))
             .attr("cy", 0)
-            .attr("r", 5);
+            .attr("r", CIRCLE_RADIUS);
     }
 
     // output circle
@@ -469,7 +495,7 @@ function addNode(svg, node) {
             .attr("class", "output")
             .attr("cx", width * (i + 1) / (outputs + 1))
             .attr("cy", height)
-            .attr("r", 5);
+            .attr("r", CIRCLE_RADIUS);
     }
 
     return g;
@@ -477,9 +503,9 @@ function addNode(svg, node) {
 
 // 绘制连线
 function addLink(svg, link) {
-    let dx = (rectWidth/(link.fromOutputs + 1)) * (link.outPort + 1);
-    let dy = rectHeight;
-    let endX = (rectWidth/(link.toInputs + 1)) * (link.inPort + 1);
+    let dx = (rectWidth/(link.fromOutputs + 1)) * link.outPort;
+    let dy = rectHeight + CIRCLE_RADIUS;
+    let endX = (rectWidth/(link.toInputs + 1)) * link.inPort;
     let endY = 0;
     let points = [];
     points.push([dx + link.source[0], dy + link.source[1]]);
@@ -487,6 +513,7 @@ function addLink(svg, link) {
 
     let path = svg.append('path')
         .attr("class", "cable")
+        .attr("id", link.id)
         .attr("from", link.fromId)
         .attr("to", link.toId)
         .attr("output", link.fromOutputs)
@@ -497,8 +524,10 @@ function addLink(svg, link) {
         return "M" + points[0][0] + "," + points[0][1]
             + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
             + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
-            + " " + points[1][0] + "," + points[1][1];
+            + " " + points[1][0] + "," + (+points[1][1] - CIRCLE_RADIUS);
     });
+
+    console.log(svg.selectAll('circle'));
 
     return path;
 }
