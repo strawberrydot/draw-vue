@@ -19,8 +19,8 @@ var defaultData =
             {
                 id: 2,
                 dataId: 2,
-                x: 52,
-                y: 133,
+                x: 152,
+                y: 142,
                 text: "选择分析列",
                 inputs: 2,
                 outputs: 2,
@@ -29,16 +29,24 @@ var defaultData =
             }],
         links: [
             {
+                fromId: 1,
+                toId: 2,
                 source: [283, 32],
-                target: [52, 133],
-                inPort: 1,
-                outPort: 0
+                target: [152, 142],
+                inPort: 0,
+                outPort: 0,
+                fromOutputs: 1,
+                toInputs: 2
             },
             {
+                fromId: 1,
+                toId: 2,
                 source: [283, 32],
-                target: [52, 133],
+                target: [152, 142],
                 inPort: 1,
-                outPort: 0
+                outPort: 0,
+                fromOutputs: 1,
+                toInputs: 2
             }
         ]
     };
@@ -130,7 +138,10 @@ let end;
 /* add */
 var optNum = 0;
 var optWidth = 0;
-
+var rectWidth = 180;
+var rectHeight = 46;
+// 建议固定rect宽高，因为后续连线涉及到计算
+// 若text超出宽度，可省略以...显示，点击节点，右边会有对应详情显示
 
 /* 事件绑定 */
 function addEvents(g) {
@@ -148,7 +159,7 @@ function addEvents(g) {
             .on("end", lineended)
     );
 
-    d3.selectAll('.node').data(defaultData);
+    // d3.selectAll('.node').data(defaultData);
 
     g.selectAll("circle.input")
         .on("mouseover", function (d, i, target) {
@@ -217,6 +228,9 @@ function linestarted() {
     // 当前选中的节点
     var node = d3.select(this.parentNode);
     var rect = node.node().getBoundingClientRect();
+    rectWidth = rect.width;
+    rectHeight = rect.height;
+    console.log(rectHeight);
     /*校正 计算线的起始位置*/
     var dx = (rect.width / (+node.attr("outputs") + 1)) * (anchor.attr("output"));
     var dy = rect.height;
@@ -269,7 +283,7 @@ function lineended(d) {
         inputNum = +pNode.attr('inputs');
         var input = pNode.node().getBoundingClientRect().width / (inputNum + 1);
         let index = anchor.attr("input");
-        // 吸附 todo
+        // 吸附优化 todo
         if (nearestNum && nearestNum.length) {
             activeLine.attr("d", function () {
                 return "M" + points[0][0] + "," + points[0][1]
@@ -400,6 +414,8 @@ function addNode(svg, node) {
         .attr("stroke-width", 2)
         .attr("stroke", "#333")
         .attr("fill", "#fff");
+    // todo
+    // rect内容过大，高度不固定时，计算时要获取当前高度？？
 
     var bound = rect.node().getBoundingClientRect();
     var width = bound.width;
@@ -461,7 +477,30 @@ function addNode(svg, node) {
 
 // 绘制连线
 function addLink(svg, link) {
+    let dx = (rectWidth/(link.fromOutputs + 1)) * (link.outPort + 1);
+    let dy = rectHeight;
+    let endX = (rectWidth/(link.toInputs + 1)) * (link.inPort + 1);
+    let endY = 0;
+    let points = [];
+    points.push([dx + link.source[0], dy + link.source[1]]);
+    points[1] = [endX + link.target[0], link.target[1]];
 
+    let path = svg.append('path')
+        .attr("class", "cable")
+        .attr("from", link.fromId)
+        .attr("to", link.toId)
+        .attr("output", link.fromOutputs)
+        .attr("input", link.toInputs)
+        .attr("start", dx + ", " + dy)
+        .attr("end", endX + ", " + endY)
+        .attr("d", function () {
+        return "M" + points[0][0] + "," + points[0][1]
+            + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
+            + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
+            + " " + points[1][0] + "," + points[1][1];
+    });
+
+    return path;
 }
 
 function getTypeStr(type) {
