@@ -323,6 +323,8 @@ function lineended(d) {
         link.toInputs = +pNode.attr('inputs');
 
         defaultData.links.push(link);
+        // 新增后，刷新，重新绘制，因为需要给path对应的id
+        // todo
     }
     activeLine = null;
     points.length = 0;
@@ -401,6 +403,11 @@ function updateCable(elem) {
                     + " " + end[0] + "," + (start[1] + end[1]) / 2
                     + " " + end[0] + "," + end[1];
             });
+
+            // edit link path的id在数据库中是唯一的，通过当前id去查找，然后更新位置值
+            link.id = d3.select(this).attr("id");
+            link.source = [start[0], start[1]];
+            // todo
         });
 
     // 更新输入线的位置
@@ -418,6 +425,11 @@ function updateCable(elem) {
                     + " " + end[0] + "," + (start[1] + end[1]) / 2
                     + " " + end[0] + "," + end[1];
             });
+
+            // edit link path的id在数据库中是唯一的，通过当前id去查找，然后更新位置值
+            link.id = d3.select(this).attr("id");
+            link.target = [end[0], end[1]];
+
         });
 }
 
