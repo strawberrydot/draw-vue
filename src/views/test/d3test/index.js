@@ -28,7 +28,30 @@ var defaultData =
                 outputs: 2,
                 status: 1,
                 type: 2
-            }],
+            },
+            {
+                id: 101,
+                dataId: 101,
+                x: 395,
+                y: 142,
+                text: "读数据",
+                inputs: 0,
+                outputs: 1,
+                status: 1,
+                type: 3
+            },
+            {
+                id: 102,
+                dataId: 102,
+                x: 277,
+                y: 269,
+                text: "写数据",
+                inputs: 1,
+                outputs: 0,
+                status: 1,
+                type: 4
+            }
+        ],
         links: [
             {
                 id: 11,
@@ -51,6 +74,28 @@ var defaultData =
                 outPort: 1,
                 fromOutputs: 1,
                 toInputs: 2
+            },
+            {
+                id: 13,
+                fromId: 101,
+                toId: 102,
+                source: [395, 142],
+                target: [277, 269],
+                inPort: 1,
+                outPort: 1,
+                fromOutputs: 1,
+                toInputs: 1
+            },
+            {
+                id: 14,
+                fromId: 2,
+                toId: 102,
+                source: [155, 142],
+                target: [277, 269],
+                inPort: 1,
+                outPort: 2,
+                fromOutputs: 2,
+                toInputs: 1
             }
         ]
     };
@@ -59,7 +104,7 @@ var links = [];
 
 var tooltip;
 
-$(function() {
+$(function () {
     var svg = d3.select("svg");
 
     if (defaultData && defaultData.nodes) {
@@ -140,6 +185,7 @@ var drawLine = false;
 let nearestNum = [];
 let end;
 let link = {};
+let linked = false;
 
 /* add */
 var optNum = 0;
@@ -174,10 +220,10 @@ function addEvents(g) {
                 d3.select(this).classed("end", true);
             }
         }).on("mouseout", function () {
-            if (drawLine) {
-                d3.selectAll("circle.end").classed("end", false);
-            }
-        });
+        if (drawLine) {
+            d3.selectAll("circle.end").classed("end", false);
+        }
+    });
     /*增加 鼠标移出入参时，移除.end，此时不添加line*/
 
     g.selectAll("rect").on("mouseover", function (d, i, target) {
@@ -191,8 +237,8 @@ function addEvents(g) {
             var tran = getTranslate(transform);
             var rectWidth = d3.select(this.parentNode).node().getBoundingClientRect().width;
             let array = [];
-            for (var i = 1;i <= num;i++) {
-                array.push(i * (rectWidth / (+num + 1)) + tran[0]) ;
+            for (var i = 1; i <= num; i++) {
+                array.push(i * (rectWidth / (+num + 1)) + tran[0]);
             }
             nearestNum[0] = getNearestNum(array, points[1][0]);
             end = nearestNum[0] - tran[0];
@@ -204,7 +250,7 @@ function addEvents(g) {
     });
 
     // tooltip
-    g.selectAll("text.rightIcon").on("mouseover", function() {
+    g.selectAll("text.rightIcon").on("mouseover", function () {
         // d3.select(d3.select(this.parentNode).node()) 获取到g标签 然后在获取g上面的type属性
         let type = +d3.select(d3.select(this.parentNode).node()).attr("type");
         let typeStr = getTypeStr(type);
@@ -216,9 +262,9 @@ function addEvents(g) {
             .attr("class", "hover")
             .text(typeStr);
         return tooltip.style("visibility", "visible");
-    }).on("mousemove", function() {
-        return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
-    }).on("mouseout", function() {
+    }).on("mousemove", function () {
+        return tooltip.style("top", (event.pageY - 10) + "px").style("left", (event.pageX + 10) + "px");
+    }).on("mouseout", function () {
         tooltip.remove();
         return tooltip.style("visibility", "hidden");
     });
@@ -232,12 +278,18 @@ function linestarted() {
     // 当前选中的节点
     var node = d3.select(this.parentNode);
     var rect = node.node().getBoundingClientRect();
+
     rectWidth = rect.width;
-    rectHeight = rect.height;
+    if (+node.attr("inputs")) {
+        rectHeight = rect.height - CIRCLE_RADIUS;
+    } else {
+        // 当前节点无入参时
+        rectHeight = rect.height;
+    }
 
     /*校正 计算线的起始位置*/
     var dx = (rect.width / (+node.attr("outputs") + 1)) * (anchor.attr("output"));
-    var dy = rect.height;
+    var dy = rectHeight;
     var transform = node.attr("transform");
     translate = getTranslate(transform);
     points.push([dx + translate[0], dy + translate[1]]);
@@ -262,7 +314,7 @@ function linestarted() {
     d3.select(this).classed('invalid', false);
     d3.selectAll('circle.input').classed('valid', true);
     d3.select(this.parentNode).selectAll('circle.input').classed('valid', false);
-
+    d3.select(this.parentNode).selectAll('circle.input').classed('invalid', false);
 
     link.outPort = +anchor.attr("output");
     link.fromOutputs = +node.attr("outputs");
@@ -271,20 +323,46 @@ function linestarted() {
 function linedragged() {
     drawLine = true;
     points[1] = [d3.event.x + translate[0], d3.event.y + translate[1]];
-    activeLine.attr("d", function () {
-        return "M" + points[0][0] + "," + points[0][1]
-            + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
-            + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
-            + " " + points[1][0] + "," + points[1][1];
-    });
+
+    console.log(nearestNum);
+
+    // 吸附优化
+    if (nearestNum && nearestNum.length) {
+        activeLine.attr("d", function () {
+            return "M" + points[0][0] + "," + points[0][1]
+                + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + nearestNum[0] + "," + nearestNum[1];
+        });
+    } else {
+        activeLine.attr("d", function () {
+            return "M" + points[0][0] + "," + points[0][1]
+                + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + points[1][0] + "," + points[1][1];
+        });
+    }
+    console.log('draging');
 }
 
 function lineended(d) {
     drawLine = false;
     var anchor = d3.selectAll("circle.end");
+    let dataType;
 
-    if (anchor.empty()) {
+    if (!anchor.empty() && anchor.attr("data-type")) {
+        dataType = anchor.attr("data-type").split(",");
+        dataType.forEach(item => {
+            if (+activeLine.attr("from") === +item) {
+                linked = true;
+                return;
+            }
+        });
+    }
+
+    if (anchor.empty() || linked) {
         activeLine.remove();
+        anchor.classed("end", false);
     } else {
         var pNode = d3.select(anchor.node().parentNode);
         var inputNum;
@@ -292,15 +370,6 @@ function lineended(d) {
         var input = pNode.node().getBoundingClientRect().width / (inputNum + 1);
         let index = anchor.attr("input");
 
-        // 吸附优化 todo
-        if (nearestNum && nearestNum.length) {
-            activeLine.attr("d", function () {
-                return "M" + points[0][0] + "," + points[0][1]
-                    + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
-                    + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
-                    + " " + nearestNum[0] + "," + nearestNum[1];
-            });
-        }
         anchor.classed("end", false);
         activeLine.attr("to", pNode.attr("id"));
         activeLine.attr("input", anchor.attr("input"));
@@ -311,7 +380,7 @@ function lineended(d) {
             // 解决bug 同一个.node上的出入参可生成连线
             activeLine.remove();
         } else {
-            // anchor.attr("data-type", +activeLine.attr("from") + ", " +pNode.attr("id"));
+            anchor.attr("data-type", +activeLine.attr("from") + ", " + pNode.attr("id"));
         }
 
         // add link
@@ -329,7 +398,9 @@ function lineended(d) {
     activeLine = null;
     points.length = 0;
     translate = null;
+    linked = false;
     link = {};
+    nearestNum = [];
     d3.selectAll('rect').attr('stroke-dasharray', 'none');
     d3.selectAll('circle.output').classed('invalid', false);
     d3.selectAll('circle.input').classed('valid', false);
@@ -439,12 +510,14 @@ function dragended() {
 }
 
 function addNode(svg, node) {
+    let type = node.type;
+
     var g = svg.append("g")
         .attr("class", "node")
         .attr("data-id", node.dataId)
         .attr("id", node.id)
         .attr("transform", 'translate(' + node.x + ', ' + node.y + ')')
-        .attr("type", node.type);
+        .attr("type", node.type)
 
     var rect = g.append("rect")
         .attr("rx", 5)
@@ -515,9 +588,9 @@ function addNode(svg, node) {
 
 // 绘制连线
 function addLink(svg, link) {
-    let dx = (rectWidth/(link.fromOutputs + 1)) * link.outPort;
+    let dx = (rectWidth / (link.fromOutputs + 1)) * link.outPort;
     let dy = rectHeight + CIRCLE_RADIUS;
-    let endX = (rectWidth/(link.toInputs + 1)) * link.inPort;
+    let endX = (rectWidth / (link.toInputs + 1)) * link.inPort;
     let endY = 0;
     let points = [];
     points.push([dx + link.source[0], dy + link.source[1]]);
@@ -533,26 +606,31 @@ function addLink(svg, link) {
         .attr("start", dx + ", " + dy)
         .attr("end", endX + ", " + endY)
         .attr("d", function () {
-        return "M" + points[0][0] + "," + points[0][1]
-            + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
-            + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
-            + " " + points[1][0] + "," + (+points[1][1] - CIRCLE_RADIUS);
-    });
-
-    console.log(svg.selectAll('circle'));
+            return "M" + points[0][0] + "," + points[0][1]
+                + "C" + points[0][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + points[1][0] + "," + (points[0][1] + points[1][1]) / 2
+                + " " + points[1][0] + "," + (+points[1][1] - CIRCLE_RADIUS);
+        });
 
     return path;
 }
 
 function getTypeStr(type) {
     let result = "";
-    switch(type) {
+    switch (type) {
         case 1 :
             result = "this is data tooltip";
             break;
         case 2:
             result = "this is a simple tooltip";
             break;
+        case 3 :
+            result = "读数据";
+            break;
+        case 4:
+            result = "写数据";
+            break;
     }
     return result;
 }
+

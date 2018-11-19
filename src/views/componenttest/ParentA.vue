@@ -5,6 +5,7 @@
         <child-b :message="message"
                  @handleInputFromC="handleInputFromC"
                  @sig_event3="onEvent3"
+                 ref="childB"
         ></child-b>
 
     </div>
@@ -24,7 +25,29 @@
                 test: ''
             };
         },
+        beforeCreate() {
+            console.log('beforeCreate');
+            console.log(this.$refs);
+        },
+        created() {
+            console.log('created');
+            console.log(this.$refs);
+        },
+        beforeMount() {
+            console.log('beforeMount');
+            console.log(this.$refs);
+        },
         mounted() {
+            console.log('mounted');
+            console.log(this.$refs);
+        },
+        beforeDestroy() {
+            console.log('beforeCreate');
+            console.log(this);
+        },
+        destroyed() {
+            console.log('destroyed');
+            console.log(this);
         },
         methods: {
             handleInputFromC(msg) {
