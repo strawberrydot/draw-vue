@@ -151,6 +151,8 @@ $(function () {
 
         },
         stop: function (e, ui) {
+            // 不同type对应不同node
+
             var node = {
                 id: new Date().getTime(),
                 dataId: ui.helper.attr('data-id'),
@@ -241,8 +243,6 @@ function addEvents(g) {
             .on("end", lineended)
     );
 
-    // d3.selectAll('.node').data(defaultData);
-
     g.selectAll("circle.input")
         .on("mouseover", function (d, i, target) {
             if (drawLine) {
@@ -270,12 +270,15 @@ function addEvents(g) {
             for (var i = 1; i <= num; i++) {
                 array.push(i * (rectWidth / (+num + 1)) + tran[0]);
             }
-            nearestNum[0] = getNearestNum(array, points[1][0]);
-            end = nearestNum[0] - tran[0];
-            nearestNum[1] = +tran[1] - CIRCLE_RADIUS;
-            /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
-            let cNum = end / (rectWidth / (+num + 1));
-            d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+            if (array && array.length) {
+                nearestNum[0] = getNearestNum(array, points[1][0]);
+                end = nearestNum[0] - tran[0];
+                nearestNum[1] = +tran[1] - CIRCLE_RADIUS;
+                /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
+                let cNum = end / (rectWidth / (+num + 1));
+                d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+            }
+
         }
     });
 
@@ -308,6 +311,7 @@ function linestarted() {
     // 当前选中的节点
     var node = d3.select(this.parentNode);
     var rect = node.node().getBoundingClientRect();
+    console.log(node.datum());
 
     rectWidth = rect.width;
     if (+node.attr("inputs")) {
@@ -320,6 +324,7 @@ function linestarted() {
     /*校正 计算线的起始位置*/
     var dx = (rect.width / (+node.attr("outputs") + 1)) * (anchor.attr("output"));
     var dy = rectHeight;
+
     var transform = node.attr("transform");
     translate = getTranslate(transform);
     points.push([dx + translate[0], dy + translate[1]]);
@@ -354,7 +359,10 @@ function linedragged() {
     drawLine = true;
     points[1] = [d3.event.x + translate[0], d3.event.y + translate[1]];
 
-    console.log(nearestNum);
+    /*
+       注：当前node节点上绑定的数据集中如果定义了x,y，会影响当前d3.event.x和d3.event.y的值，修改为别的变量则不会影响，如a:133,b:145
+       故，在addNode()方法中，使用datum()方法只绑定了node.outputs的值，反正其他的值都可以在node.attr()属性上获取到
+    */
 
     // 吸附优化
     if (nearestNum && nearestNum.length) {
@@ -547,7 +555,8 @@ function addNode(svg, node) {
         .attr("data-id", node.dataId)
         .attr("id", node.id)
         .attr("transform", 'translate(' + node.x + ', ' + node.y + ')')
-        .attr("type", node.type);
+        .attr("type", node.type)
+        .datum(node.outputs);
 
     var rect = g.append("rect")
         .attr("rx", 5)
