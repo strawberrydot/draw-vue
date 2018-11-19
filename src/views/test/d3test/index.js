@@ -14,7 +14,12 @@ var defaultData =
                 y: 32,
                 text: "数据连接",
                 inputs: 1,
-                outputs: 1,
+                outputs: [{
+                    injectNodes: [{
+                        type: 2,
+                        input: [1, 2]
+                    }]
+                }],
                 status: 1,
                 type: 1
             },
@@ -25,7 +30,16 @@ var defaultData =
                 y: 142,
                 text: "选择分析列",
                 inputs: 2,
-                outputs: 2,
+                outputs: [{
+                    injectNodes: [{
+                        type: 4,
+                        input: [1]
+                    }]
+                },{injectNodes: [{
+                        type: 4,
+                        input: [1]
+                    }]
+                }],
                 status: 1,
                 type: 2
             },
@@ -36,7 +50,12 @@ var defaultData =
                 y: 142,
                 text: "读数据",
                 inputs: 0,
-                outputs: 1,
+                outputs: [{
+                    injectNodes: [{
+                        type: 4,
+                        input: [1]
+                    }]
+                }],
                 status: 1,
                 type: 3
             },
@@ -47,7 +66,7 @@ var defaultData =
                 y: 269,
                 text: "写数据",
                 inputs: 1,
-                outputs: 0,
+                outputs: [],
                 status: 1,
                 type: 4
             }
@@ -139,7 +158,18 @@ $(function () {
                 y: ui.position.top - 40,
                 text: ui.helper.text(),
                 inputs: 1,
-                outputs: 2,
+                outputs: [
+                    {
+                        injectNodes: [{
+
+                        }]
+                    },
+                    {
+                        injectNodes: [{
+
+                        }]
+                    }
+                ],
                 status: 1,
                 type: 1
             };
@@ -517,7 +547,7 @@ function addNode(svg, node) {
         .attr("data-id", node.dataId)
         .attr("id", node.id)
         .attr("transform", 'translate(' + node.x + ', ' + node.y + ')')
-        .attr("type", node.type)
+        .attr("type", node.type);
 
     var rect = g.append("rect")
         .attr("rx", 5)
@@ -572,7 +602,7 @@ function addNode(svg, node) {
     }
 
     // output circle
-    var outputs = node.outputs || 0;
+    var outputs = node.outputs.length || 0;
     g.attr("outputs", outputs);
     for (i = 0; i < outputs; i++) {
         g.append("circle")
