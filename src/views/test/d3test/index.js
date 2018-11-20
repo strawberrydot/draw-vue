@@ -17,7 +17,7 @@ var defaultData =
                 outputs: [{
                     injectNodes: [{
                         type: 2,
-                        input: [1, 2]
+                        input: [1]
                     }]
                 }],
                 status: 1,
@@ -83,17 +83,18 @@ var defaultData =
                 fromOutputs: 1,
                 toInputs: 2
             },
-            {
-                id: 12,
-                fromId: 1,
-                toId: 2,
-                source: [283, 32],
-                target: [152, 142],
-                inPort: 2,
-                outPort: 1,
-                fromOutputs: 1,
-                toInputs: 2
-            },
+
+            // {
+            //     id: 12,
+            //     fromId: 1,
+            //     toId: 2,
+            //     source: [283, 32],
+            //     target: [152, 142],
+            //     inPort: 2,
+            //     outPort: 1,
+            //     fromOutputs: 1,
+            //     toInputs: 2
+            // },
             {
                 id: 13,
                 fromId: 101,
@@ -278,7 +279,6 @@ function addEvents(g) {
                 let cNum = end / (rectWidth / (+num + 1));
                 d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
             }
-
         }
     });
 
@@ -310,9 +310,40 @@ function linestarted() {
     var anchor = d3.select(this);
     // 当前选中的节点
     var node = d3.select(this.parentNode);
-    var rect = node.node().getBoundingClientRect();
-    console.log(node.datum());
 
+    //distinguish code
+    {
+        // 思路：拿到可连的type,根据type确定节点。找到节点上的input，然后改变对应的css
+        let outputIndex = anchor.attr('output');
+        let map = {};
+        if (node.datum() && node.datum().length) {
+            let tempArray = node.datum()[outputIndex - 1].injectNodes;
+            tempArray.forEach(item => {
+                let key = item.type;
+                map[key] = key;
+                let input = item.type + 'input';
+                map[input] = item.input;
+            });
+        }
+        d3.selectAll('g').nodes().forEach(item => {
+            let targetType = +d3.select(item).attr("type");
+            if(map[targetType]) {
+                // map内存在这个type
+                let targetInput = targetType + 'input';
+                // 拿到当前type对应节点上可连的input index - 1
+                // 先让所有circle都标记一个颜色，然后再给可连的circle标记另外一个颜色
+                d3.selectAll('circle').classed('invalid', true);
+                anchor.classed('invalid', false);
+                map[targetInput].forEach(term => {
+                    let inputCircles = d3.select(item).selectAll("circle.input").nodes();
+                    d3.select(inputCircles[term - 1]).classed('invalid', false);
+                    d3.select(inputCircles[term - 1]).classed('valid', true);
+                });
+            }
+        });
+    }
+
+    var rect = node.node().getBoundingClientRect();
     rectWidth = rect.width;
     if (+node.attr("inputs")) {
         rectHeight = rect.height - CIRCLE_RADIUS;
@@ -345,11 +376,11 @@ function linestarted() {
     d3.select(this.parentNode).select('rect').attr('stroke', '#333').attr('stroke-dasharray', 'none');
 
     /* 有效的出入点 区分 */
-    d3.selectAll('circle.output').classed('invalid', true);
-    d3.select(this).classed('invalid', false);
-    d3.selectAll('circle.input').classed('valid', true);
-    d3.select(this.parentNode).selectAll('circle.input').classed('valid', false);
-    d3.select(this.parentNode).selectAll('circle.input').classed('invalid', false);
+    // d3.selectAll('circle.output').classed('invalid', true);
+    // d3.select(this).classed('invalid', false);
+    // d3.selectAll('circle.input').classed('valid', true);
+    // d3.select(this.parentNode).selectAll('circle.input').classed('valid', false);
+    // d3.select(this.parentNode).selectAll('circle.input').classed('invalid', false);
 
     link.outPort = +anchor.attr("output");
     link.fromOutputs = +node.attr("outputs");
@@ -441,6 +472,7 @@ function lineended(d) {
     nearestNum = [];
     d3.selectAll('rect').attr('stroke-dasharray', 'none');
     d3.selectAll('circle.output').classed('invalid', false);
+    d3.selectAll('circle.input').classed('invalid', false);
     d3.selectAll('circle.input').classed('valid', false);
 
 }

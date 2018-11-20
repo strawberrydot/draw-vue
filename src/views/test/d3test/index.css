@@ -118,6 +118,10 @@
     fill: red;
 }
 
+.bpmn .node circle.input.invalid {
+    fill: red;
+}
+
 .bpmn .node circle.input.valid {
     fill: green;
 }
