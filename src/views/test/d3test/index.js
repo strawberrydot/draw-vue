@@ -247,8 +247,11 @@ function addEvents(g) {
     g.selectAll("circle.input")
         .on("mouseover", function (d, i, target) {
             if (drawLine) {
+                let overCircle = d3.select(d3.select(this).node()).classed('invalid');
                 d3.selectAll("circle.end").classed("end", false);
-                d3.select(this).classed("end", true);
+                if (!overCircle) {
+                    d3.select(this).classed("end", true);
+                }
             }
         }).on("mouseout", function () {
         if (drawLine) {
@@ -277,7 +280,10 @@ function addEvents(g) {
                 nearestNum[1] = +tran[1] - CIRCLE_RADIUS;
                 /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
                 let cNum = end / (rectWidth / (+num + 1));
-                d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+                let overCircle = d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('invalid');
+                if (!overCircle) {
+                    d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+                }
             }
         }
     });
