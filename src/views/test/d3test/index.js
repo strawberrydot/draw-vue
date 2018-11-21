@@ -251,7 +251,7 @@ function addEvents(g) {
                 if (!overCircle) {
                     d3.select(this).classed("end", true);
                 } else {
-                    // nearestNum = [];
+                    nearestNum = [];
                 }
             }
         }).on("mouseout", function () {
@@ -285,7 +285,7 @@ function addEvents(g) {
                 if (!overCircle) {
                     d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
                 } else {
-                    // nearestNum = [];
+                    nearestNum = [];
                 }
             }
         }
@@ -297,6 +297,9 @@ function addEvents(g) {
     // tooltip
     g.selectAll("text.rightIcon").on("mouseover", function () {
         // d3.select(d3.select(this.parentNode).node()) 获取到g标签 然后在获取g上面的type属性
+        if (drawLine) {
+            return;
+        }
         let type = +d3.select(d3.select(this.parentNode).node()).attr("type");
         let typeStr = getTypeStr(type);
         tooltip = d3.select("body")
@@ -308,8 +311,14 @@ function addEvents(g) {
             .text(typeStr);
         return tooltip.style("visibility", "visible");
     }).on("mousemove", function () {
+        if (drawLine) {
+            return;
+        }
         return tooltip.style("top", (event.pageY - 10) + "px").style("left", (event.pageX + 10) + "px");
     }).on("mouseout", function () {
+        if (drawLine) {
+            return;
+        }
         tooltip.remove();
         return tooltip.style("visibility", "hidden");
     });
@@ -688,6 +697,8 @@ function addLink(svg, link) {
             }
         })
     }
+
+    // 注意：在.node上通过datum()方法绑定了data，在此节点上的circle，通过datum()方法居然可以获取到.node上的data
 
     let path = svg.append('path')
         .attr("class", "cable")
