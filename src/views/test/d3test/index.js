@@ -83,7 +83,6 @@ var defaultData =
                 fromOutputs: 1,
                 toInputs: 2
             },
-
             // {
             //     id: 12,
             //     fromId: 1,
@@ -251,6 +250,8 @@ function addEvents(g) {
                 d3.selectAll("circle.end").classed("end", false);
                 if (!overCircle) {
                     d3.select(this).classed("end", true);
+                } else {
+                    // nearestNum = [];
                 }
             }
         }).on("mouseout", function () {
@@ -283,9 +284,14 @@ function addEvents(g) {
                 let overCircle = d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('invalid');
                 if (!overCircle) {
                     d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+                } else {
+                    // nearestNum = [];
                 }
             }
         }
+    }).on("mouseout", function () {
+        d3.selectAll('circle.input').classed('end', false);
+        nearestNum = [];
     });
 
     // tooltip
@@ -400,7 +406,6 @@ function linedragged() {
        注：当前node节点上绑定的数据集中如果定义了x,y，会影响当前d3.event.x和d3.event.y的值，修改为别的变量则不会影响，如a:133,b:145
        故，在addNode()方法中，使用datum()方法只绑定了node.outputs的值，反正其他的值都可以在node.attr()属性上获取到
     */
-
     // 吸附优化
     if (nearestNum && nearestNum.length) {
         activeLine.attr("d", function () {
@@ -672,6 +677,17 @@ function addLink(svg, link) {
     let points = [];
     points.push([dx + link.source[0], dy + link.source[1]]);
     points[1] = [endX + link.target[0], link.target[1]];
+
+    // 解决定点之间只能添加一条path的思路：根据toId找到node，根据入参数据找到这个circle，给circle添加data-type属性
+    {
+        let toId = link.toId;
+        svg.selectAll('g').nodes().forEach(item => {
+            if (+d3.select(item).attr("id") === toId) {
+                let inCircle = d3.select(item).selectAll('circle.input').nodes()[link.inPort - 1];
+                d3.select(inCircle).attr("data-type", link.fromId + ", " + link.toId);
+            }
+        })
+    }
 
     let path = svg.append('path')
         .attr("class", "cable")
