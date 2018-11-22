@@ -261,16 +261,16 @@ function addEvents(g) {
     });
     /*增加 鼠标移出入参时，移除.end，此时不添加line*/
 
-    g.selectAll("rect").on("mouseover", function (d, i, target) {
+    d3.selectAll('g').on("mouseover", function (d, i, target) {
         if (drawLine) {
             nearestNum = [];
-            console.log('拖拽入rect范围内');
+            console.log('拖拽入g范围内');
             d3.selectAll("rect.flag").classed("flag", false);
-            d3.select(this).classed("flag", true);
-            var num = d3.select(this.parentNode).attr('inputs');
-            var transform = d3.select(this.parentNode).attr("transform");
+            d3.select(this).select("rect").classed("flag", true);
+            var num = d3.select(this).attr('inputs');
+            var transform = d3.select(this).attr("transform");
             var tran = getTranslate(transform);
-            var rectWidth = d3.select(this.parentNode).node().getBoundingClientRect().width;
+            var rectWidth = d3.select(this).node().getBoundingClientRect().width;
             let array = [];
             for (var i = 1; i <= num; i++) {
                 array.push(i * (rectWidth / (+num + 1)) + tran[0]);
@@ -281,9 +281,9 @@ function addEvents(g) {
                 nearestNum[1] = +tran[1] - CIRCLE_RADIUS;
                 /* 额外减5 是连线终点的位置再减去圆的半径 使连线不超过圆内 */
                 let cNum = end / (rectWidth / (+num + 1));
-                let overCircle = d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('invalid');
+                let overCircle = d3.select(d3.select(this).selectAll('circle.input').nodes()[cNum - 1]).classed('invalid');
                 if (!overCircle) {
-                    d3.select(d3.select(this.parentNode).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
+                    d3.select(d3.select(this).selectAll('circle.input').nodes()[cNum - 1]).classed('end', true);
                 } else {
                     nearestNum = [];
                 }
