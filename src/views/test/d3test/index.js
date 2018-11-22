@@ -17,7 +17,7 @@ var defaultData =
                 outputs: [{
                     injectNodes: [{
                         type: 2,
-                        input: [1]
+                        input: [1, 2]
                     }]
                 }],
                 status: 1,
@@ -439,21 +439,32 @@ function lineended(d) {
     var anchor = d3.selectAll("circle.end");
     let dataType;
 
-    if (!anchor.empty() && anchor.attr("data-type")) {
-        dataType = anchor.attr("data-type").split(",");
-        dataType.forEach(item => {
-            if (+activeLine.attr("from") === +item) {
-                linked = true;
-                return;
-            }
-        });
-    }
-
-    if (anchor.empty() || linked) {
+    if (anchor.empty()) {
         activeLine.remove();
         anchor.classed("end", false);
     } else {
         var pNode = d3.select(anchor.node().parentNode);
+
+        {
+            if (anchor.attr("data-type")) {
+                let comparedArray = [];
+                comparedArray.push(+activeLine.attr("from"));
+                comparedArray.push(+pNode.attr("id"));
+                dataType = anchor.attr("data-type").split("&");
+                dataType.forEach(item => {
+                    let tempArray = item.split("@");
+                    let linkedIds = getTranslate(tempArray[1]);
+                    if (linkedIds.toString() === comparedArray.toString()) {
+                        if (+tempArray[0] === link.outPort) {
+                            activeLine.remove();
+                            anchor.classed("end", false);
+                            return;
+                        }
+                    }
+                });
+            }
+        }
+
         var inputNum;
         inputNum = +pNode.attr('inputs');
         var input = pNode.node().getBoundingClientRect().width / (inputNum + 1);
@@ -465,13 +476,6 @@ function lineended(d) {
         /* path C end 位置计算修正 */
         activeLine.attr("end", input * index + ", 0");
 
-        if (+activeLine.attr("from") === +pNode.attr("id")) {
-            // 解决bug 同一个.node上的出入参可生成连线
-            activeLine.remove();
-        } else {
-            anchor.attr("data-type", +activeLine.attr("from") + ", " + pNode.attr("id"));
-        }
-
         // add link
         link.fromId = activeLine.attr("from");
         link.toId = activeLine.attr("to");
@@ -479,6 +483,17 @@ function lineended(d) {
         link.target = getTranslate(pNode.attr("transform"));
         link.inPort = +anchor.attr("input");
         link.toInputs = +pNode.attr('inputs');
+
+        if (+activeLine.attr("from") === +pNode.attr("id")) {
+            // 解决bug 同一个.node上的出入参可生成连线
+            activeLine.remove();
+        } else {
+            var tempStr = link.outPort + "@" + "(" + link.fromId + ", " + link.toId +  ")";
+            if (anchor.attr("data-type")) {
+                tempStr = anchor.attr("data-type") + "&" + tempStr;
+            }
+            anchor.attr("data-type", tempStr);
+        }
 
         defaultData.links.push(link);
         // 新增后，刷新，重新绘制，因为需要给path对应的id
@@ -693,7 +708,11 @@ function addLink(svg, link) {
         svg.selectAll('g').nodes().forEach(item => {
             if (+d3.select(item).attr("id") === toId) {
                 let inCircle = d3.select(item).selectAll('circle.input').nodes()[link.inPort - 1];
-                d3.select(inCircle).attr("data-type", link.fromId + ", " + link.toId);
+                let tempStr = link.outPort + "@" + "(" + link.fromId + ", " + link.toId +  ")";
+                if (d3.select(inCircle).attr("data-type")) {
+                    tempStr = d3.select(inCircle).attr("data-type") + "&" + tempStr;
+                }
+                d3.select(inCircle).attr("data-type", tempStr);
             }
         })
     }
@@ -736,5 +755,9 @@ function getTypeStr(type) {
             break;
     }
     return result;
+}
+
+function checkLined(pNode) {
+
 }
 
