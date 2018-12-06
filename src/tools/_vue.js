@@ -4345,7 +4345,7 @@
         return new vnode.componentOptions.Ctor(options)
     }
 
-    function installComponentHooks (data) {
+    function  installComponentHooks (data) {
         var hooks = data.hook || (data.hook = {});
         for (var i = 0; i < hooksToMerge.length; i++) {
             var key = hooksToMerge[i];
@@ -4373,7 +4373,7 @@
 
 // wrapper function for providing a more flexible interface
 // without getting yelled at by flow
-    function createElement (
+    function  createElement (
         context,
         tag,
         data,
@@ -6119,6 +6119,7 @@
                 isInitialPatch = true;
                 createElm(vnode, insertedVnodeQueue, parentElm, refElm);
             } else {
+                // 判断旧节点中是否有nodeType属性
                 var isRealElement = isDef(oldVnode.nodeType);
                 if (!isRealElement && sameVnode(oldVnode, vnode)) {
                     // patch existing root node
